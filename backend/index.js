@@ -1,22 +1,21 @@
 const express = require('express');
 const cors = require('cors');
-const { Configuration, OpenAIApi } = require('openai');
+const OpenAI = require('openai');
 require('dotenv').config();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-const configuration = new Configuration({
+const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
-const openai = new OpenAIApi(configuration);
 
 app.post('/api/playlist', async (req, res) => {
     const { prompt } = req.body;
 
     try {
-        const completion = await openai.createChatCompletion({
+        const completion = await openai.chat.completions.create({
             model: 'gpt-4',
             messages: [
                 {
@@ -27,7 +26,7 @@ app.post('/api/playlist', async (req, res) => {
             temperature: 0.8,
         });
 
-        const message = completion.data.choices[0].message.content;
+        const message = completion.choices[0].message.content;
         res.send({ playlist: message });
     } catch (err) {
         console.error('OpenAI error:', err);
