@@ -10,11 +10,14 @@ function App() {
         if (!inputValue) return;
 
         try {
-            const res = await fetch('http://localhost:3001/api/playlist', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt: inputValue }),
-            });
+            const res = await fetch(
+                'https://prompt-music-production.up.railway.app',
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: inputValue }),
+                }
+            );
 
             const data = await res.json();
 
