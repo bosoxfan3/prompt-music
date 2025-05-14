@@ -87,7 +87,7 @@ app.get('/login', (req, res) => {
 });
 
 app.get('/callback', async (req, res) => {
-    console.log('Callback query:', req.query);
+    console.log('Callback query:', JSON.stringify(req.query, null, 2));
     const code = req.query.code; // Extract the code from the query
     console.log('Received code:', code); // Log the code to debug
 
