@@ -37,7 +37,7 @@ function App() {
 
         try {
             setIsLoading(true);
-            const res = await fetch(`${API_BASE_URL}/api/playlist`, {
+            const res = await fetch(`${API_BASE_URL}/playlist`, {
                 method: 'POST',
                 credentials: 'include',
                 headers: { 'Content-Type': 'application/json' },
