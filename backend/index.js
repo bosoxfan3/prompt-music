@@ -1,26 +1,116 @@
 const express = require('express');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const OpenAI = require('openai');
 require('dotenv').config({ path: './backend/.env' });
 
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
 const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
 const SPOTIFY_REDIRECT_URI = process.env.SPOTIFY_REDIRECT_URI;
+const FRONTEND_BASE_URL = process.env.FRONTEND_BASE_URL;
 
 const app = express();
-app.use(cors());
 app.use(express.json());
+app.use(cookieParser());
+
+const allowedOrigins = [
+    'http://localhost:3000',
+    'https://prompt-music.vercel.app',
+];
+
+app.use(
+    cors({
+        origin: function (origin, callback) {
+            if (!origin || allowedOrigins.includes(origin)) {
+                callback(null, true);
+            } else {
+                callback(new Error('Not allowed by CORS'));
+            }
+        },
+        credentials: true, // allows cookies to be sent
+    })
+);
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
 
+async function getValidAccessToken(req, res) {
+    let accessToken = req.cookies.access_token;
+    const refreshToken = req.cookies.refresh_token;
+
+    // Try a lightweight Spotify API call to check if access token works
+    const testRes = await fetch('https://api.spotify.com/v1/me', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    if (testRes.status !== 401) {
+        return accessToken; // token still valid
+    }
+
+    // If expired, refresh the access token
+    const refreshRes = await fetch('https://accounts.spotify.com/api/token', {
+        method: 'POST',
+        headers: {
+            Authorization:
+                'Basic ' +
+                Buffer.from(
+                    SPOTIFY_CLIENT_ID + ':' + SPOTIFY_CLIENT_SECRET
+                ).toString('base64'),
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+            grant_type: 'refresh_token',
+            refresh_token: refreshToken,
+        }),
+    });
+
+    const data = await refreshRes.json();
+
+    if (!data.access_token) {
+        throw new Error('Could not refresh access token');
+    }
+
+    // Update the cookie with new access token
+    res.cookie('access_token', data.access_token, {
+        httpOnly: true,
+        secure: true,
+    });
+    return data.access_token;
+}
+
 app.get('/', (req, res) => {
     res.send('Backend is working!');
 });
 
-app.post('/api/playlist', async (req, res) => {
-    const { prompt, accessToken } = req.body;
+app.get('/user', async (req, res) => {
+    const accessToken = await getValidAccessToken(req, res);
+    if (!accessToken) {
+        return res.status(401).json({ error: 'No access token' });
+    }
+
+    try {
+        const userProfileRes = await fetch('https://api.spotify.com/v1/me', {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            },
+        });
+
+        if (!userProfileRes.ok) {
+            return res.status(400).json({ error: 'Failed to fetch profile' });
+        }
+
+        const user = await userProfileRes.json();
+        res.json({ user });
+    } catch (err) {
+        console.error('Error fetching profile:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.post('/playlist', async (req, res) => {
+    const accessToken = await getValidAccessToken(req, res);
+    const { prompt } = req.body;
 
     try {
         const completion = await openai.chat.completions.create({
@@ -87,9 +177,7 @@ app.get('/login', (req, res) => {
 });
 
 app.get('/callback', async (req, res) => {
-    console.log('Callback query:', JSON.stringify(req.query, null, 2));
     const code = req.query.code; // Extract the code from the query
-    console.log('Received code:', code); // Log the code to debug
 
     if (!code) {
         return res.status(400).send('No code received');
@@ -133,28 +221,31 @@ app.get('/callback', async (req, res) => {
                 .send('Error getting tokens: ' + tokenData.error_description);
         }
 
-        localStorage.setItem('spotify_access_token', tokenData.access_token);
-        localStorage.setItem(
-            'spotify_token_expires_at',
-            (Date.now() + tokenData.expires_in * 1000).toString()
-        );
-
-        // Now fetch the user's profile using the access token
-        const accessToken = tokenData.access_token;
-
         const userProfileResponse = await fetch(
             'https://api.spotify.com/v1/me',
             {
                 headers: {
-                    Authorization: `Bearer ${accessToken}`,
+                    Authorization: `Bearer ${tokenData.access_token}`,
                 },
             }
         );
 
         const userProfile = await userProfileResponse.json();
 
-        // Send the token and user profile back to the client
-        res.json({ tokenData, userProfile });
+        res.cookie('access_token', tokenData.access_token, {
+            httpOnly: true,
+            secure: true,
+        });
+        res.cookie('refresh_token', tokenData.refresh_token, {
+            httpOnly: true,
+            secure: true,
+        });
+        res.cookie('spotify_user_id', userProfile.id, {
+            httpOnly: true,
+            secure: true,
+        });
+
+        res.redirect(FRONTEND_BASE_URL);
     } catch (err) {
         console.error('Error during token exchange:', err);
         res.status(500).send('Error during token exchange');
@@ -162,7 +253,8 @@ app.get('/callback', async (req, res) => {
 });
 
 app.post('/create-playlist', async (req, res) => {
-    const { accessToken, userId, playlistName, tracks } = req.body;
+    const accessToken = await getValidAccessToken(req, res);
+    const { userId, playlistName, tracks } = req.body;
 
     if (!accessToken || !userId || !playlistName || !tracks) {
         return res.status(400).json({ error: 'Missing required fields' });
@@ -196,6 +288,7 @@ app.post('/create-playlist', async (req, res) => {
                 });
             }
         }
+        playlistToUse = playlistToUse.filter((song) => song.uri);
     }
 
     try {

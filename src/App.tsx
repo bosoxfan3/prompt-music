@@ -15,32 +15,21 @@ function App() {
     const [spotifyUser, setSpotifyUser] = useState<any>(null);
 
     useEffect(() => {
-        const token = localStorage.getItem('spotify_access_token');
-        const expiresAt = Number(
-            localStorage.getItem('spotify_token_expires_at')
-        );
-
-        if (token && Date.now() < expiresAt) {
-            // Token is valid, fetch the user's Spotify profile
-            fetch('https://api.spotify.com/v1/me', {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            })
-                .then((res) => res.json())
-                .then((data) => {
-                    console.log('Spotify user profile:', data);
-                    setSpotifyUser(data);
-                    // Optionally: store in state
-                })
-                .catch((err) => {
-                    console.error('Error fetching profile:', err);
+        const fetchUser = async () => {
+            try {
+                const res = await fetch(`${API_BASE_URL}/user`, {
+                    credentials: 'include',
                 });
-        } else {
-            console.log(
-                'No valid token found, user needs to login with Spotify'
-            );
-        }
+                if (!res.ok) return;
+
+                const data = await res.json();
+                setSpotifyUser(data.user);
+            } catch (err) {
+                console.error('Failed to fetch user', err);
+            }
+        };
+
+        fetchUser();
     }, []);
 
     const getPlaylist = async () => {
@@ -50,6 +39,7 @@ function App() {
             setIsLoading(true);
             const res = await fetch(`${API_BASE_URL}/api/playlist`, {
                 method: 'POST',
+                credentials: 'include',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ prompt: inputValue }),
             });
@@ -69,29 +59,24 @@ function App() {
     };
 
     const handleConnectToSpotify = () => {
-        window.location.href =
-            'https://prompt-music-production.up.railway.app/login';
+        window.location.href = `${API_BASE_URL}/login`;
     };
 
     const handleSaveToSpotify = async () => {
-        const token = localStorage.getItem('spotify_access_token');
         try {
             setIsLoading(true);
-            const response = await fetch(
-                'https://prompt-music-production.up.railway.app/create-playlist',
-                {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        accessToken: token,
-                        userId: spotifyUser.id,
-                        playlistName: lastFetchedInput,
-                        tracks: playlist,
-                    }),
-                }
-            );
+            const response = await fetch(`${API_BASE_URL}/create-playlist`, {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId: spotifyUser.id,
+                    playlistName: lastFetchedInput,
+                    tracks: playlist,
+                }),
+            });
 
             const data = await response.json();
             if (data.playlistUrl) {
