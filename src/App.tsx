@@ -9,7 +9,7 @@ function App() {
     const [inputValue, setInputValue] = useState<string>('');
     const [lastFetchedInput, setLastFetchedInput] = useState<string>('');
     const [playlist, setPlaylist] = useState<
-        { title: string; artist: string }[]
+        { title: string; artist: string; uri: string | null }[]
     >([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [spotifyUser, setSpotifyUser] = useState<any>(null);
@@ -61,11 +61,49 @@ function App() {
                 setPlaylist(songs);
                 setLastFetchedInput(inputValue);
                 setInputValue('');
-                setIsLoading(false);
             }
         } catch (err) {
             console.error('Fetch error:', err);
         }
+        setIsLoading(false);
+    };
+
+    const handleConnectToSpotify = () => {
+        window.location.href =
+            'https://prompt-music-production.up.railway.app/login';
+    };
+
+    const handleSaveToSpotify = async () => {
+        const token = localStorage.getItem('spotify_access_token');
+        try {
+            setIsLoading(true);
+            const response = await fetch(
+                'https://prompt-music-production.up.railway.app/create-playlist',
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        accessToken: token,
+                        userId: spotifyUser.id,
+                        playlistName: lastFetchedInput,
+                        tracks: playlist,
+                    }),
+                }
+            );
+
+            const data = await response.json();
+            if (data.playlistUrl) {
+                window.open(data.playlistUrl, '_blank');
+            } else {
+                alert('Something went wrong saving the playlist.');
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Error saving to Spotify');
+        }
+        setIsLoading(false);
     };
 
     return (
@@ -94,11 +132,24 @@ function App() {
                     onChange={(e) => setInputValue(e.target.value)}
                 />
                 {spotifyUser ? (
-                    <p>Welcome, {spotifyUser.display_name}</p>
+                    <>
+                        <p>Welcome, {spotifyUser.display_name}</p>
+                        {!!playlist.length && (
+                            <button onClick={handleSaveToSpotify}>
+                                Save to Spotify
+                            </button>
+                        )}
+                    </>
                 ) : (
-                    <a href="https://prompt-music-production.up.railway.app/login">
-                        Connect to Spotify
-                    </a>
+                    <>
+                        <p>
+                            You can connect your Spotify account and save any
+                            playlists you like
+                        </p>
+                        <button onClick={handleConnectToSpotify}>
+                            Connect to Spotify
+                        </button>
+                    </>
                 )}
                 <button type="button" onClick={getPlaylist}>
                     Generate Playlist
