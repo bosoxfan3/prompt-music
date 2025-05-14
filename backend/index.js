@@ -87,6 +87,7 @@ app.get('/login', (req, res) => {
 });
 
 app.get('/callback', async (req, res) => {
+    console.log('Callback query:', req.query);
     const code = req.query.code; // Extract the code from the query
     console.log('Received code:', code); // Log the code to debug
 
@@ -109,7 +110,7 @@ app.get('/callback', async (req, res) => {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
                 body: new URLSearchParams({
-                    code: code,
+                    code,
                     redirect_uri: SPOTIFY_REDIRECT_URI,
                     grant_type: 'authorization_code',
                 }),
