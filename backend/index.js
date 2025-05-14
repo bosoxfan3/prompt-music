@@ -3,9 +3,9 @@ const cors = require('cors');
 const OpenAI = require('openai');
 require('dotenv').config({ path: './backend/.env' });
 
-const clientId = process.env.SPOTIFY_CLIENT_ID;
-const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
-const redirectUri = process.env.SPOTIFY_REDIRECT_URI;
+const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
+const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
+const SPOTIFY_REDIRECT_URI = process.env.SPOTIFY_REDIRECT_URI;
 
 const app = express();
 app.use(cors());
@@ -39,56 +39,82 @@ app.post('/api/playlist', async (req, res) => {
 });
 
 app.get('/login', (req, res) => {
-    const scope = 'playlist-modify-private playlist-modify-public';
-
-    const params = new URLSearchParams({
-        client_id: clientId,
-        response_type: 'code',
-        redirect_uri: redirectUri,
-        scope,
-    });
-
-    res.redirect(`https://accounts.spotify.com/authorize?${params.toString()}`);
+    const authURL = `https://accounts.spotify.com/authorize?client_id=${SPOTIFY_CLIENT_ID}&response_type=code&redirect_uri=${SPOTIFY_REDIRECT_URI}&scope=playlist-modify-public playlist-modify-private`;
+    res.redirect(authURL); // This should redirect to Spotify's login page
 });
 
 app.get('/callback', async (req, res) => {
-    const code = req.query.code;
+    const code = req.query.code; // Extract the code from the query
+    console.log('Received code:', code); // Log the code to debug
+
     if (!code) {
         return res.status(400).send('No code received');
     }
 
-    // Make the POST request to Spotify to exchange the code for an access token
-    const tokenResponse = await fetch(
-        'https://accounts.spotify.com/api/token',
-        {
-            method: 'POST',
-            headers: {
-                Authorization:
-                    'Basic ' +
-                    Buffer.from(clientId + ':' + clientSecret).toString(
-                        'base64'
-                    ),
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: new URLSearchParams({
-                code,
-                redirect_uri: redirectUri,
-                grant_type: 'authorization_code',
-            }),
+    try {
+        // Proceed with the token exchange using the code
+        const tokenResponse = await fetch(
+            'https://accounts.spotify.com/api/token',
+            {
+                method: 'POST',
+                headers: {
+                    Authorization:
+                        'Basic ' +
+                        Buffer.from(
+                            SPOTIFY_CLIENT_ID + ':' + SPOTIFY_CLIENT_SECRET
+                        ).toString('base64'),
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    code: code,
+                    redirect_uri: SPOTIFY_REDIRECT_URI,
+                    grant_type: 'authorization_code',
+                }),
+            }
+        );
+
+        // Check if the response was successful
+        if (!tokenResponse.ok) {
+            const errorData = await tokenResponse.json();
+            return res
+                .status(400)
+                .send('Error getting tokens: ' + errorData.error_description);
         }
-    );
 
-    const tokenData = await tokenResponse.json();
+        const tokenData = await tokenResponse.json();
 
-    if (tokenData.error) {
-        return res
-            .status(400)
-            .send('Error getting tokens: ' + tokenData.error_description);
+        if (tokenData.error) {
+            return res
+                .status(400)
+                .send('Error getting tokens: ' + tokenData.error_description);
+        }
+
+        localStorage.setItem('spotify_access_token', tokenData.access_token);
+        localStorage.setItem(
+            'spotify_token_expires_at',
+            (Date.now() + tokenData.expires_in * 1000).toString()
+        );
+
+        // Now fetch the user's profile using the access token
+        const accessToken = tokenData.access_token;
+
+        const userProfileResponse = await fetch(
+            'https://api.spotify.com/v1/me',
+            {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                },
+            }
+        );
+
+        const userProfile = await userProfileResponse.json();
+
+        // Send the token and user profile back to the client
+        res.json({ tokenData, userProfile });
+    } catch (err) {
+        console.error('Error during token exchange:', err);
+        res.status(500).send('Error during token exchange');
     }
-
-    // You can now store the access token securely (e.g., in a session or cookie)
-    // For now, let's just send the access token as a response (this is temporary)
-    res.json(tokenData);
 });
 
 app.get('/', (req, res) => {

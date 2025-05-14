@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
 
 import LoadingSpinnerModal from './components/loading-spinner-modal';
@@ -12,6 +12,36 @@ function App() {
         { title: string; artist: string }[]
     >([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [spotifyUser, setSpotifyUser] = useState<any>(null);
+
+    useEffect(() => {
+        const token = localStorage.getItem('spotify_access_token');
+        const expiresAt = Number(
+            localStorage.getItem('spotify_token_expires_at')
+        );
+
+        if (token && Date.now() < expiresAt) {
+            // Token is valid, fetch the user's Spotify profile
+            fetch('https://api.spotify.com/v1/me', {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            })
+                .then((res) => res.json())
+                .then((data) => {
+                    console.log('Spotify user profile:', data);
+                    setSpotifyUser(data);
+                    // Optionally: store in state
+                })
+                .catch((err) => {
+                    console.error('Error fetching profile:', err);
+                });
+        } else {
+            console.log(
+                'No valid token found, user needs to login with Spotify'
+            );
+        }
+    }, []);
 
     const getPlaylist = async () => {
         if (!inputValue) return;
@@ -63,6 +93,13 @@ function App() {
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
                 />
+                {spotifyUser ? (
+                    <p>Welcome, {spotifyUser.display_name}</p>
+                ) : (
+                    <a href="https://prompt-music-production.up.railway.app/login">
+                        Connect to Spotify
+                    </a>
+                )}
                 <button type="button" onClick={getPlaylist}>
                     Generate Playlist
                 </button>
