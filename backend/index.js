@@ -92,6 +92,7 @@ async function getValidAccessToken(req, res) {
             res.cookie('access_token', data.access_token, {
                 httpOnly: true,
                 secure: true,
+                sameSite: 'none',
             });
 
             return data.access_token;
@@ -261,14 +262,17 @@ app.get('/callback', async (req, res) => {
         res.cookie('access_token', tokenData.access_token, {
             httpOnly: true,
             secure: true,
+            sameSite: 'none',
         });
         res.cookie('refresh_token', tokenData.refresh_token, {
             httpOnly: true,
             secure: true,
+            sameSite: 'none',
         });
         res.cookie('spotify_user_id', userProfile.id, {
             httpOnly: true,
             secure: true,
+            sameSite: 'none',
         });
 
         console.log('Redirecting to:', FRONTEND_BASE_URL);
