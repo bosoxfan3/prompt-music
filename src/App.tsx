@@ -47,8 +47,7 @@ function App() {
             const data = await res.json();
 
             if (data.playlist) {
-                const songs = JSON.parse(data.playlist); // Still parse because GPT returns text
-                setPlaylist(songs);
+                setPlaylist(data.playlist);
                 setLastFetchedInput(inputValue);
                 setInputValue('');
             }
