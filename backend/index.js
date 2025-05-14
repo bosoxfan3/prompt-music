@@ -39,44 +39,70 @@ async function getValidAccessToken(req, res) {
     let accessToken = req.cookies.access_token;
     const refreshToken = req.cookies.refresh_token;
 
-    // Try a lightweight Spotify API call to check if access token works
-    const testRes = await fetch('https://api.spotify.com/v1/me', {
-        headers: { Authorization: `Bearer ${accessToken}` },
-    });
-
-    if (testRes.status !== 401) {
-        return accessToken; // token still valid
+    if (!accessToken && !refreshToken) {
+        console.log('No access or refresh token found in cookies.');
+        return null;
     }
 
-    // If expired, refresh the access token
-    const refreshRes = await fetch('https://accounts.spotify.com/api/token', {
-        method: 'POST',
-        headers: {
-            Authorization:
-                'Basic ' +
-                Buffer.from(
-                    SPOTIFY_CLIENT_ID + ':' + SPOTIFY_CLIENT_SECRET
-                ).toString('base64'),
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-            grant_type: 'refresh_token',
-            refresh_token: refreshToken,
-        }),
-    });
+    if (accessToken) {
+        try {
+            const testRes = await fetch('https://api.spotify.com/v1/me', {
+                headers: { Authorization: `Bearer ${accessToken}` },
+            });
 
-    const data = await refreshRes.json();
-
-    if (!data.access_token) {
-        throw new Error('Could not refresh access token');
+            if (testRes.status !== 401) {
+                return accessToken; // Token is still valid
+            } else {
+                console.log('Access token expired, attempting refresh');
+            }
+        } catch (err) {
+            console.error('Error testing access token:', err);
+            return null;
+        }
     }
 
-    // Update the cookie with new access token
-    res.cookie('access_token', data.access_token, {
-        httpOnly: true,
-        secure: true,
-    });
-    return data.access_token;
+    if (refreshToken) {
+        try {
+            const refreshRes = await fetch(
+                'https://accounts.spotify.com/api/token',
+                {
+                    method: 'POST',
+                    headers: {
+                        Authorization:
+                            'Basic ' +
+                            Buffer.from(
+                                SPOTIFY_CLIENT_ID + ':' + SPOTIFY_CLIENT_SECRET
+                            ).toString('base64'),
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        grant_type: 'refresh_token',
+                        refresh_token: refreshToken,
+                    }),
+                }
+            );
+
+            const data = await refreshRes.json();
+
+            if (!data.access_token) {
+                console.log('Refresh failed: No new access token returned.');
+                return null;
+            }
+
+            res.cookie('access_token', data.access_token, {
+                httpOnly: true,
+                secure: true,
+            });
+
+            return data.access_token;
+        } catch (err) {
+            console.error('Error refreshing token:', err);
+            return null;
+        }
+    }
+
+    console.log('No valid token path available.');
+    return null;
 }
 
 app.get('/', (req, res) => {
@@ -245,6 +271,7 @@ app.get('/callback', async (req, res) => {
             secure: true,
         });
 
+        console.log('Redirecting to:', FRONTEND_BASE_URL);
         res.redirect(FRONTEND_BASE_URL);
     } catch (err) {
         console.error('Error during token exchange:', err);
