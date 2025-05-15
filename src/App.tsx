@@ -13,8 +13,25 @@ function App() {
     >([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [spotifyUser, setSpotifyUser] = useState<any>(null);
+    const [hasAccessToken, setHasAccessToken] = useState(false);
 
     useEffect(() => {
+        const intervalId = setInterval(() => {
+            const cookies = document.cookie.split(';').map((c) => c.trim());
+            const found = cookies.some((cookie) =>
+                cookie.startsWith('access_token=')
+            );
+            if (found) {
+                setHasAccessToken(true);
+                clearInterval(intervalId);
+            }
+        }, 500); // check every 500ms
+
+        return () => clearInterval(intervalId);
+    }, []);
+
+    useEffect(() => {
+        if (!hasAccessToken) return;
         const fetchUser = async () => {
             try {
                 const res = await fetch(`${API_BASE_URL}/user`, {
@@ -30,7 +47,7 @@ function App() {
         };
 
         fetchUser();
-    }, []);
+    }, [hasAccessToken]);
 
     const getPlaylist = async () => {
         if (!inputValue) return;
