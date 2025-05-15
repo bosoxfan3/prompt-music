@@ -232,34 +232,72 @@ app.get('/callback', async (req, res) => {
             }
         );
 
-        // Check if the response was successful
+        const rawText = await tokenResponse.text();
+
         if (!tokenResponse.ok) {
-            let errorText = await tokenResponse.text(); // always safe
-            try {
-                const errorData = JSON.parse(errorText);
-                return res
-                    .status(400)
-                    .send(
-                        'Error getting tokens: ' + errorData.error_description
-                    );
-            } catch (e) {
-                console.error(
-                    'Non-JSON error during token exchange:',
-                    errorText
-                );
-                return res
-                    .status(400)
-                    .send('Error during token exchange: ' + errorText);
-            }
+            console.error(
+                'Token exchange failed. Status:',
+                tokenResponse.status
+            );
+            console.error('Raw response:', rawText);
+            return res.status(400).send('Token exchange failed.');
         }
 
-        const tokenData = await tokenResponse.json();
-
-        if (tokenData.error) {
+        let tokenData;
+        try {
+            tokenData = JSON.parse(rawText);
+        } catch (err) {
+            console.error('Failed to parse token response:', rawText);
             return res
                 .status(400)
-                .send('Error getting tokens: ' + tokenData.error_description);
+                .send('Error parsing token response from Spotify.');
         }
+
+        if (!tokenData.access_token) {
+            return res
+                .status(400)
+                .send('No access token received from Spotify');
+        }
+
+        // Check if the response was successful
+        // if (!tokenResponse.ok) {
+        //     let errorText = await tokenResponse.text(); // always safe
+        //     try {
+        //         const errorData = JSON.parse(errorText);
+        //         return res
+        //             .status(400)
+        //             .send(
+        //                 'Error getting tokens: ' + errorData.error_description
+        //             );
+        //     } catch (e) {
+        //         console.error(
+        //             'Non-JSON error during token exchange:',
+        //             errorText
+        //         );
+        //         return res
+        //             .status(400)
+        //             .send('Error during token exchange: ' + errorText);
+        //     }
+        // }
+
+        // const tokenData = await tokenResponse.json();
+
+        // if (tokenData.error) {
+        //     return res
+        //         .status(400)
+        //         .send('Error getting tokens: ' + tokenData.error_description);
+        // }
+
+        res.cookie('access_token', tokenData.access_token, {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'none',
+        });
+        res.cookie('refresh_token', tokenData.refresh_token, {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'none',
+        });
 
         const userProfileResponse = await fetch(
             'https://api.spotify.com/v1/me',
@@ -272,23 +310,12 @@ app.get('/callback', async (req, res) => {
 
         const userProfile = await userProfileResponse.json();
 
-        res.cookie('access_token', tokenData.access_token, {
-            httpOnly: true,
-            secure: true,
-            sameSite: 'none',
-        });
-        res.cookie('refresh_token', tokenData.refresh_token, {
-            httpOnly: true,
-            secure: true,
-            sameSite: 'none',
-        });
         res.cookie('spotify_user_id', userProfile.id, {
             httpOnly: true,
             secure: true,
             sameSite: 'none',
         });
 
-        console.log('Redirecting to:', FRONTEND_BASE_URL);
         res.redirect(FRONTEND_BASE_URL);
     } catch (err) {
         console.error('Error during token exchange:', err);
