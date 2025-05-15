@@ -204,6 +204,7 @@ app.get('/login', (req, res) => {
 });
 
 app.get('/callback', async (req, res) => {
+    console.log('Callback query params:', req.query);
     const code = req.query.code; // Extract the code from the query
 
     if (!code) {
@@ -233,6 +234,7 @@ app.get('/callback', async (req, res) => {
         );
 
         const rawText = await tokenResponse.text();
+        console.log('Token response raw:', rawText);
 
         if (!tokenResponse.ok) {
             console.error(
@@ -240,6 +242,7 @@ app.get('/callback', async (req, res) => {
                 tokenResponse.status
             );
             console.error('Raw response:', rawText);
+            console.error('Request body:', code, SPOTIFY_REDIRECT_URI);
             return res.status(400).send('Token exchange failed.');
         }
 
@@ -294,23 +297,6 @@ app.get('/callback', async (req, res) => {
             sameSite: 'none',
         });
         res.cookie('refresh_token', tokenData.refresh_token, {
-            httpOnly: true,
-            secure: true,
-            sameSite: 'none',
-        });
-
-        const userProfileResponse = await fetch(
-            'https://api.spotify.com/v1/me',
-            {
-                headers: {
-                    Authorization: `Bearer ${tokenData.access_token}`,
-                },
-            }
-        );
-
-        const userProfile = await userProfileResponse.json();
-
-        res.cookie('spotify_user_id', userProfile.id, {
             httpOnly: true,
             secure: true,
             sameSite: 'none',
