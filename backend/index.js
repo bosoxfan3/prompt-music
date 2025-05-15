@@ -234,10 +234,23 @@ app.get('/callback', async (req, res) => {
 
         // Check if the response was successful
         if (!tokenResponse.ok) {
-            const errorData = await tokenResponse.json();
-            return res
-                .status(400)
-                .send('Error getting tokens: ' + errorData.error_description);
+            let errorText = await tokenResponse.text(); // always safe
+            try {
+                const errorData = JSON.parse(errorText);
+                return res
+                    .status(400)
+                    .send(
+                        'Error getting tokens: ' + errorData.error_description
+                    );
+            } catch (e) {
+                console.error(
+                    'Non-JSON error during token exchange:',
+                    errorText
+                );
+                return res
+                    .status(400)
+                    .send('Error during token exchange: ' + errorText);
+            }
         }
 
         const tokenData = await tokenResponse.json();
