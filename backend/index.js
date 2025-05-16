@@ -262,35 +262,6 @@ app.get('/callback', async (req, res) => {
                 .send('No access token received from Spotify');
         }
 
-        // Check if the response was successful
-        // if (!tokenResponse.ok) {
-        //     let errorText = await tokenResponse.text(); // always safe
-        //     try {
-        //         const errorData = JSON.parse(errorText);
-        //         return res
-        //             .status(400)
-        //             .send(
-        //                 'Error getting tokens: ' + errorData.error_description
-        //             );
-        //     } catch (e) {
-        //         console.error(
-        //             'Non-JSON error during token exchange:',
-        //             errorText
-        //         );
-        //         return res
-        //             .status(400)
-        //             .send('Error during token exchange: ' + errorText);
-        //     }
-        // }
-
-        // const tokenData = await tokenResponse.json();
-
-        // if (tokenData.error) {
-        //     return res
-        //         .status(400)
-        //         .send('Error getting tokens: ' + tokenData.error_description);
-        // }
-
         res.cookie('access_token', tokenData.access_token, {
             httpOnly: true,
             secure: true,

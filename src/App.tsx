@@ -3,6 +3,8 @@ import './App.css';
 
 import LoadingSpinnerModal from './components/loading-spinner-modal';
 
+import Spotify from './components/spotify';
+
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
 function App() {
@@ -130,23 +132,30 @@ function App() {
                     <>
                         <p>Welcome, {spotifyUser.display_name}</p>
                         {!!playlist.length && (
-                            <button onClick={handleSaveToSpotify}>
-                                Save to Spotify
+                            <button
+                                className="secondary-button"
+                                onClick={handleSaveToSpotify}
+                            >
+                                Save to Spotify <Spotify />
                             </button>
                         )}
                     </>
                 ) : (
                     <>
-                        <p>
-                            You can connect your Spotify account and save any
-                            playlists you like
-                        </p>
-                        <button onClick={handleConnectToSpotify}>
-                            Connect to Spotify
+                        <p>Connect your Spotify account to save playlists</p>
+                        <button
+                            className="secondary-button"
+                            onClick={handleConnectToSpotify}
+                        >
+                            Connect to Spotify <Spotify />
                         </button>
                     </>
                 )}
-                <button type="button" onClick={getPlaylist}>
+                <button
+                    className="primary-button"
+                    type="button"
+                    onClick={getPlaylist}
+                >
                     Generate Playlist
                 </button>
                 {isLoading && <LoadingSpinnerModal />}
