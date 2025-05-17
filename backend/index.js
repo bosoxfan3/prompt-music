@@ -267,12 +267,12 @@ app.get('/callback', async (req, res) => {
 
         res.cookie('access_token', tokenData.access_token, {
             httpOnly: true,
-            secure: true,
+            secure: false,
             sameSite: 'none',
         });
         res.cookie('refresh_token', tokenData.refresh_token, {
             httpOnly: true,
-            secure: true,
+            secure: false,
             sameSite: 'none',
         });
 
