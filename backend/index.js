@@ -277,7 +277,7 @@ app.get('/callback', async (req, res) => {
         });
 
         res.send(
-            '<html><body><p>Cookie set. <a href="https://your-frontend-url">Continue</a></p></body></html>'
+            `<html><body><p>Cookie set. <a href="${FRONTEND_BASE_URL}">Continue</a></p></body></html>`
         );
 
         console.log('Setting cookies and redirecting...');
