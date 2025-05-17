@@ -273,7 +273,23 @@ app.get('/callback', async (req, res) => {
             sameSite: 'none',
         });
 
-        res.redirect(FRONTEND_BASE_URL);
+        console.log('Setting cookies and redirecting...');
+        res.send(`
+            <html>
+              <head>
+                <meta charset="utf-8" />
+                <title>Authenticating...</title>
+              </head>
+              <body>
+                <p>Authenticated! Redirecting you to the app...</p>
+                <script>
+                  setTimeout(() => {
+                    window.location.href = '${FRONTEND_BASE_URL}';
+                  }, 1000); // 1 second delay
+                </script>
+              </body>
+            </html>
+          `);
     } catch (err) {
         console.error('Error during token exchange:', err);
         res.status(500).send('Error during token exchange');
