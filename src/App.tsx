@@ -19,9 +19,11 @@ function App() {
     useEffect(() => {
         async function fetchUser() {
             try {
+                console.log('Fetching user...');
                 const res = await fetch(`${API_BASE_URL}/user`, {
                     credentials: 'include', // send cookies
                 });
+                console.log('User response status:', res.status);
                 if (!res.ok) {
                     setSpotifyUser(null);
                     return;

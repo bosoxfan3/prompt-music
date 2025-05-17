@@ -235,6 +235,9 @@ app.get('/callback', async (req, res) => {
 
         const rawText = await tokenResponse.text();
         console.log('Token response raw:', rawText);
+        console.log('Query params:', req.query); // Should contain ?code
+        console.log('Token response raw:', tokenResponse); // You already do this
+        console.log('Setting cookies...');
 
         if (!tokenResponse.ok) {
             console.error(
@@ -283,10 +286,16 @@ app.get('/callback', async (req, res) => {
               <body>
                 <p>Authenticated! Redirecting you to the app...</p>
                 <script>
+  console.log('Redirecting to app...');
+  setTimeout(() => window.location.href = '...', 1000);
+</script>
+
+                <script>
                   setTimeout(() => {
                     window.location.href = '${FRONTEND_BASE_URL}';
                   }, 1000); // 1 second delay
                 </script>
+                
               </body>
             </html>
           `);
