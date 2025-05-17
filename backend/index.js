@@ -7,6 +7,7 @@ require('dotenv').config();
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
 const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
 const SPOTIFY_REDIRECT_URI = process.env.SPOTIFY_REDIRECT_URI;
+const FRONTEND_BASE_URL = process.env.FRONTEND_BASE_URL;
 
 const app = express();
 app.use(express.json());
@@ -35,8 +36,7 @@ const openai = new OpenAI({
 });
 
 async function getValidAccessToken(req, res) {
-    const authHeader = req.headers.authorization;
-    const accessToken = authHeader?.split(' ')[1];
+    let accessToken = req.cookies.access_token;
     const refreshToken = req.cookies.refresh_token;
 
     if (!accessToken && !refreshToken) {
@@ -204,13 +204,14 @@ app.get('/login', (req, res) => {
 });
 
 app.get('/callback', async (req, res) => {
-    const code = req.query.code;
+    const code = req.query.code; // Extract the code from the query
 
     if (!code) {
         return res.status(400).send('No code received');
     }
 
     try {
+        // Proceed with the token exchange using the code
         const tokenResponse = await fetch(
             'https://accounts.spotify.com/api/token',
             {
@@ -231,6 +232,7 @@ app.get('/callback', async (req, res) => {
             }
         );
 
+        // Check if the response was successful
         if (!tokenResponse.ok) {
             const errorData = await tokenResponse.json();
             return res
@@ -240,15 +242,44 @@ app.get('/callback', async (req, res) => {
 
         const tokenData = await tokenResponse.json();
 
-        // Redirect to frontend with tokens in query params
-        const redirectUrl = new URL('https://prompt-music.vercel.app/callback');
-        redirectUrl.searchParams.set('access_token', tokenData.access_token);
-        redirectUrl.searchParams.set('expires_in', tokenData.expires_in);
+        if (tokenData.error) {
+            return res
+                .status(400)
+                .send('Error getting tokens: ' + tokenData.error_description);
+        }
 
-        return res.redirect(redirectUrl.toString());
+        const userProfileResponse = await fetch(
+            'https://api.spotify.com/v1/me',
+            {
+                headers: {
+                    Authorization: `Bearer ${tokenData.access_token}`,
+                },
+            }
+        );
+
+        const userProfile = await userProfileResponse.json();
+
+        res.cookie('access_token', tokenData.access_token, {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'none',
+        });
+        res.cookie('refresh_token', tokenData.refresh_token, {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'none',
+        });
+        res.cookie('spotify_user_id', userProfile.id, {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'none',
+        });
+
+        console.log('Redirecting to:', FRONTEND_BASE_URL);
+        res.redirect(FRONTEND_BASE_URL);
     } catch (err) {
         console.error('Error during token exchange:', err);
-        return res.status(500).send('Token exchange failed');
+        res.status(500).send('Error during token exchange');
     }
 });
 
