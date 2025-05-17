@@ -7,7 +7,6 @@ require('dotenv').config();
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
 const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
 const SPOTIFY_REDIRECT_URI = process.env.SPOTIFY_REDIRECT_URI;
-const FRONTEND_BASE_URL = process.env.FRONTEND_BASE_URL;
 
 const app = express();
 app.use(express.json());
@@ -36,7 +35,8 @@ const openai = new OpenAI({
 });
 
 async function getValidAccessToken(req, res) {
-    let accessToken = req.cookies.access_token;
+    const authHeader = req.headers.authorization;
+    const accessToken = authHeader?.split(' ')[1];
     const refreshToken = req.cookies.refresh_token;
 
     if (!accessToken && !refreshToken) {
@@ -204,15 +204,13 @@ app.get('/login', (req, res) => {
 });
 
 app.get('/callback', async (req, res) => {
-    console.log('Callback query params:', req.query);
-    const code = req.query.code; // Extract the code from the query
+    const code = req.query.code;
 
     if (!code) {
         return res.status(400).send('No code received');
     }
 
     try {
-        // Proceed with the token exchange using the code
         const tokenResponse = await fetch(
             'https://accounts.spotify.com/api/token',
             {
@@ -233,79 +231,24 @@ app.get('/callback', async (req, res) => {
             }
         );
 
-        const rawText = await tokenResponse.text();
-        console.log('Token response raw:', rawText);
-        console.log('Query params:', req.query); // Should contain ?code
-        console.log('Token response raw:', tokenResponse); // You already do this
-        console.log('Setting cookies...');
-
         if (!tokenResponse.ok) {
-            console.error(
-                'Token exchange failed. Status:',
-                tokenResponse.status
-            );
-            console.error('Raw response:', rawText);
-            console.error('Request body:', code, SPOTIFY_REDIRECT_URI);
-            return res.status(400).send('Token exchange failed.');
-        }
-
-        let tokenData;
-        try {
-            tokenData = JSON.parse(rawText);
-        } catch (err) {
-            console.error('Failed to parse token response:', rawText);
+            const errorData = await tokenResponse.json();
             return res
                 .status(400)
-                .send('Error parsing token response from Spotify.');
+                .send('Error getting tokens: ' + errorData.error_description);
         }
 
-        if (!tokenData.access_token) {
-            return res
-                .status(400)
-                .send('No access token received from Spotify');
-        }
+        const tokenData = await tokenResponse.json();
 
-        res.cookie('access_token', tokenData.access_token, {
-            httpOnly: true,
-            secure: false,
-            sameSite: 'none',
-        });
-        res.cookie('refresh_token', tokenData.refresh_token, {
-            httpOnly: true,
-            secure: false,
-            sameSite: 'none',
-        });
+        // Redirect to frontend with tokens in query params
+        const redirectUrl = new URL('https://prompt-music.vercel.app/callback');
+        redirectUrl.searchParams.set('access_token', tokenData.access_token);
+        redirectUrl.searchParams.set('expires_in', tokenData.expires_in);
 
-        res.send(
-            `<html><body><p>Cookie set. <a href="${FRONTEND_BASE_URL}">Continue</a></p></body></html>`
-        );
-
-        console.log('Setting cookies and redirecting...');
-        res.send(`
-            <html>
-              <head>
-                <meta charset="utf-8" />
-                <title>Authenticating...</title>
-              </head>
-              <body>
-                <p>Authenticated! Redirecting you to the app...</p>
-                <script>
-  console.log('Redirecting to app...');
-  setTimeout(() => window.location.href = '...', 1000);
-</script>
-
-                <script>
-                  setTimeout(() => {
-                    window.location.href = '${FRONTEND_BASE_URL}';
-                  }, 1000); // 1 second delay
-                </script>
-                
-              </body>
-            </html>
-          `);
+        return res.redirect(redirectUrl.toString());
     } catch (err) {
         console.error('Error during token exchange:', err);
-        res.status(500).send('Error during token exchange');
+        return res.status(500).send('Token exchange failed');
     }
 });
 

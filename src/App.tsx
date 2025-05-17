@@ -16,35 +16,58 @@ function App() {
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [spotifyUser, setSpotifyUser] = useState<any>(null);
 
+    // 1. Handle access_token from URL (first-time login)
     useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const accessToken = urlParams.get('access_token');
+        const expiresIn = urlParams.get('expires_in');
+
+        if (accessToken && expiresIn) {
+            localStorage.setItem('spotify_access_token', accessToken);
+            localStorage.setItem(
+                'spotify_token_expires_at',
+                (Date.now() + Number(expiresIn) * 1000).toString()
+            );
+
+            // Clean the URL
+            const cleanUrl = new URL(window.location.href);
+            cleanUrl.search = '';
+            window.history.replaceState({}, '', cleanUrl.toString());
+        }
+    }, []);
+
+    // 2. Fetch user from backend if a valid token exists
+    useEffect(() => {
+        const accessToken = localStorage.getItem('spotify_access_token');
+        const expiresAt = Number(
+            localStorage.getItem('spotify_token_expires_at')
+        );
+
+        const isTokenValid = accessToken && Date.now() < expiresAt;
+
+        if (!isTokenValid) return;
+
         async function fetchUser() {
             try {
-                console.log('Fetching user...');
                 const res = await fetch(`${API_BASE_URL}/user`, {
-                    credentials: 'include', // send cookies
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`,
+                    },
+                    credentials: 'include',
                 });
-                console.log('User response status:', res.status);
                 if (!res.ok) {
                     setSpotifyUser(null);
                     return;
                 }
                 const data = await res.json();
                 setSpotifyUser(data.user);
-                const url = new URL(window.location.href);
-                url.searchParams.delete('code');
-                window.history.replaceState({}, '', url.toString());
             } catch (err) {
-                setSpotifyUser(null);
                 console.error('Failed to fetch user', err);
+                setSpotifyUser(null);
             }
         }
 
-        const urlParams = new URLSearchParams(window.location.search);
-        const justLoggedIn = urlParams.has('code');
-
-        if (justLoggedIn) {
-            fetchUser();
-        }
+        fetchUser();
     }, []);
 
     const getPlaylist = async () => {
