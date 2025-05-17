@@ -276,6 +276,10 @@ app.get('/callback', async (req, res) => {
             sameSite: 'none',
         });
 
+        res.send(
+            '<html><body><p>Cookie set. <a href="https://your-frontend-url">Continue</a></p></body></html>'
+        );
+
         console.log('Setting cookies and redirecting...');
         res.send(`
             <html>
