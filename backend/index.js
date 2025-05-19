@@ -40,7 +40,6 @@ async function getValidAccessToken(req, res) {
     const refreshToken = req.cookies.refresh_token;
 
     if (!accessToken && !refreshToken) {
-        console.log('No access or refresh token found in cookies.');
         return null;
     }
 
