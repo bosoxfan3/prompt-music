@@ -73,7 +73,7 @@ function App() {
 
         try {
             setIsLoading(true);
-            const response = await fetch(`${API_BASE_URL}/create-playlist`, {
+            const response = await fetch(`${API_BASE_URL}/save-playlist`, {
                 method: 'POST',
                 credentials: 'include',
                 headers: {

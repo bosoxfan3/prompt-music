@@ -35,6 +35,7 @@ const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
 
+// Check if there is a valid token or refresh token to continously keep users authenticated
 async function getValidAccessToken(req, res) {
     let accessToken = req.cookies.access_token;
     const refreshToken = req.cookies.refresh_token;
@@ -102,6 +103,7 @@ app.get('/', (req, res) => {
     res.send('Backend is working!');
 });
 
+// Fetch Spotify user so we know if they're logged in, as well as have their id and username for playlist saving
 app.get('/user', async (req, res) => {
     const accessToken = await getValidAccessToken(req, res);
     if (!accessToken) {
@@ -127,6 +129,92 @@ app.get('/user', async (req, res) => {
     }
 });
 
+app.get('/login', (req, res) => {
+    const authURL = `https://accounts.spotify.com/authorize?client_id=${SPOTIFY_CLIENT_ID}&response_type=code&redirect_uri=${SPOTIFY_REDIRECT_URI}&scope=playlist-modify-private`;
+    res.redirect(authURL); // This should redirect to Spotify's login page
+});
+
+app.get('/callback', async (req, res) => {
+    const code = req.query.code;
+
+    if (!code) {
+        return res.status(400).send('No code received');
+    }
+
+    try {
+        // Try the token exchange using the code
+        const tokenResponse = await fetch(
+            'https://accounts.spotify.com/api/token',
+            {
+                method: 'POST',
+                headers: {
+                    Authorization:
+                        'Basic ' +
+                        Buffer.from(
+                            SPOTIFY_CLIENT_ID + ':' + SPOTIFY_CLIENT_SECRET
+                        ).toString('base64'),
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    code,
+                    redirect_uri: SPOTIFY_REDIRECT_URI,
+                    grant_type: 'authorization_code',
+                }),
+            }
+        );
+
+        if (!tokenResponse.ok) {
+            const errorData = await tokenResponse.json();
+            return res
+                .status(400)
+                .send('Error getting tokens: ' + errorData.error_description);
+        }
+
+        const tokenData = await tokenResponse.json();
+
+        if (tokenData.error) {
+            return res
+                .status(400)
+                .send('Error getting tokens: ' + tokenData.error_description);
+        }
+
+        // If we've got a token, fetch the user data from Spotify
+        const userProfileResponse = await fetch(
+            'https://api.spotify.com/v1/me',
+            {
+                headers: {
+                    Authorization: `Bearer ${tokenData.access_token}`,
+                },
+            }
+        );
+
+        const userProfile = await userProfileResponse.json();
+
+        // Finish Spotify authorization, set the cookies, and send them back to this app
+        res.cookie('access_token', tokenData.access_token, {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'none',
+        });
+        res.cookie('refresh_token', tokenData.refresh_token, {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'none',
+        });
+        res.cookie('spotify_user_id', userProfile.id, {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'none',
+        });
+
+        res.redirect(FRONTEND_BASE_URL);
+    } catch (err) {
+        console.error('Error during token exchange:', err);
+        res.status(500).send('Error during token exchange');
+    }
+});
+
+// Send prompt to ChatGPT to generate playlist, then fetch songs in playlist from Spotify
 app.post('/playlist', async (req, res) => {
     const accessToken = await getValidAccessToken(req, res);
     const { prompt } = req.body;
@@ -159,6 +247,7 @@ app.post('/playlist', async (req, res) => {
             return res.send({ playlist });
         }
 
+        // If the user is logged in, we need to add the uris from Spotify to the songs so that the playlist can be saved
         const results = [];
         for (const song of playlist) {
             const query = `track:${song.title} artist:${song.artist}`;
@@ -195,91 +284,8 @@ app.post('/playlist', async (req, res) => {
     }
 });
 
-app.get('/login', (req, res) => {
-    const authURL = `https://accounts.spotify.com/authorize?client_id=${SPOTIFY_CLIENT_ID}&response_type=code&redirect_uri=${SPOTIFY_REDIRECT_URI}&scope=playlist-modify-private`;
-    res.redirect(authURL); // This should redirect to Spotify's login page
-});
-
-app.get('/callback', async (req, res) => {
-    const code = req.query.code; // Extract the code from the query
-
-    if (!code) {
-        return res.status(400).send('No code received');
-    }
-
-    try {
-        // Proceed with the token exchange using the code
-        const tokenResponse = await fetch(
-            'https://accounts.spotify.com/api/token',
-            {
-                method: 'POST',
-                headers: {
-                    Authorization:
-                        'Basic ' +
-                        Buffer.from(
-                            SPOTIFY_CLIENT_ID + ':' + SPOTIFY_CLIENT_SECRET
-                        ).toString('base64'),
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: new URLSearchParams({
-                    code,
-                    redirect_uri: SPOTIFY_REDIRECT_URI,
-                    grant_type: 'authorization_code',
-                }),
-            }
-        );
-
-        // Check if the response was successful
-        if (!tokenResponse.ok) {
-            const errorData = await tokenResponse.json();
-            return res
-                .status(400)
-                .send('Error getting tokens: ' + errorData.error_description);
-        }
-
-        const tokenData = await tokenResponse.json();
-
-        if (tokenData.error) {
-            return res
-                .status(400)
-                .send('Error getting tokens: ' + tokenData.error_description);
-        }
-
-        const userProfileResponse = await fetch(
-            'https://api.spotify.com/v1/me',
-            {
-                headers: {
-                    Authorization: `Bearer ${tokenData.access_token}`,
-                },
-            }
-        );
-
-        const userProfile = await userProfileResponse.json();
-
-        res.cookie('access_token', tokenData.access_token, {
-            httpOnly: true,
-            secure: true,
-            sameSite: 'none',
-        });
-        res.cookie('refresh_token', tokenData.refresh_token, {
-            httpOnly: true,
-            secure: true,
-            sameSite: 'none',
-        });
-        res.cookie('spotify_user_id', userProfile.id, {
-            httpOnly: true,
-            secure: true,
-            sameSite: 'none',
-        });
-
-        res.redirect(FRONTEND_BASE_URL);
-    } catch (err) {
-        console.error('Error during token exchange:', err);
-        res.status(500).send('Error during token exchange');
-    }
-});
-
-app.post('/create-playlist', async (req, res) => {
+// If user is authenticated and playlist songs have uris, save playlist to Spotify and open Spotify
+app.post('/save-playlist', async (req, res) => {
     const accessToken = await getValidAccessToken(req, res);
     const { userId, playlistName, tracks } = req.body;
 
@@ -287,9 +293,11 @@ app.post('/create-playlist', async (req, res) => {
         return res.status(400).json({ error: 'Missing required fields' });
     }
 
+    // We can only save songs with Spotify uris
     const filteredTracks = tracks.filter((song) => song.uri);
     let playlistToUse = filteredTracks;
 
+    // Double check for uris from Spotify if none of the songs had one
     if (!playlistToUse.length) {
         playlistToUse = [];
         for (const song of tracks) {
@@ -324,7 +332,7 @@ app.post('/create-playlist', async (req, res) => {
     }
 
     try {
-        // Step 1: Create playlist
+        // Create playlist
         const createRes = await fetch(
             `https://api.spotify.com/v1/users/${userId}/playlists`,
             {
@@ -348,7 +356,7 @@ app.post('/create-playlist', async (req, res) => {
             .map((track) => track.uri)
             .filter(Boolean);
 
-        // Step 2: Add tracks
+        // Add tracks
         await fetch(
             `https://api.spotify.com/v1/playlists/${playlist.id}/tracks`,
             {
