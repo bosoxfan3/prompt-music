@@ -1,6 +1,10 @@
 {
     "name": "prompt-music",
-    "version": "0.1.0",
+    "version": "1.0.0",
+    "author": "Daniel Acquesta <dgacquesta@gmail.com>",
+    "homepage": "https://prompt-music.vercel.app",
+    "description": "Generate Spotify playlists from a mood or prompt using AI.",
+    "license": "MIT",
     "private": true,
     "dependencies": {
         "@testing-library/dom": "^10.4.0",
