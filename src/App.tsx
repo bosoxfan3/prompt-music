@@ -39,6 +39,13 @@ function App() {
                 thumbnail:
                     'https://i.scdn.co/image/ab67616d00001e02ff9ca10b55ce82ae553c8228',
             },
+            {
+                title: 'Younger',
+                artist: 'Seinabo Sey',
+                uri: null,
+                thumbnail:
+                    'https://i.scdn.co/image/ab67616d00001e02ff9ca10b55ce82ae553c8228',
+            },
         ]);
         const fetchUser = async () => {
             try {
@@ -175,10 +182,21 @@ function App() {
                     <>
                         <p>Built off of: "{lastFetchedInput}"</p>
                         {playlist.map((song) => (
-                            <div key={song.title}>
-                                <p>
-                                    {song.title} - {song.artist}
-                                </p>
+                            <div key={song.title} className="song">
+                                {song.thumbnail ? (
+                                    <img
+                                        src={song.thumbnail}
+                                        alt={`${song.title} Album Cover`}
+                                        width={64}
+                                        height={64}
+                                    />
+                                ) : (
+                                    <div className="no-album" />
+                                )}
+                                <div>
+                                    <p>Title: {song.title}</p>
+                                    <p>Artist: {song.artist}</p>
+                                </div>
                             </div>
                         ))}
                     </>
