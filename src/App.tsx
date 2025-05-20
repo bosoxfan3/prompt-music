@@ -101,89 +101,85 @@ function App() {
 
     return (
         <div className="app">
-            <div className="container">
-                <h1>
-                    Talk about...
-                    <a
-                        className="title-link"
-                        href="https://www.youtube.com/watch?v=gPoiv0sZ4s4"
-                        target="_blank"
-                        rel="noreferrer"
-                    >
-                        Pop Music
-                    </a>
-                </h1>
-                <h3>(Or really any kind of music!)</h3>
-                <h4>
-                    Enter a mood, scenario, or just a combination of adjectives
-                    and generate a custom 10-song playlist
-                </h4>
-                <input
-                    type="text"
-                    placeholder="ex. studying during a thunderstorm"
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                />
-                {spotifyUser ? (
-                    <>
-                        <p>Welcome, {spotifyUser.display_name}</p>
-                        {!!playlist.length && (
-                            <button
-                                className="secondary-button"
-                                onClick={handleSaveToSpotify}
-                            >
-                                Save to Spotify <Spotify />
-                            </button>
-                        )}
-                    </>
-                ) : (
-                    <>
-                        <p>Connect your Spotify account to save playlists</p>
+            <h1>
+                Talk about...
+                <a
+                    className="title-link"
+                    href="https://www.youtube.com/watch?v=gPoiv0sZ4s4"
+                    target="_blank"
+                    rel="noreferrer"
+                >
+                    Pop Music
+                </a>
+            </h1>
+            <h3>(Or really any kind of music!)</h3>
+            <h4>
+                Enter a mood, scenario, or just a combination of adjectives and
+                generate a custom 10-song playlist
+            </h4>
+            <input
+                type="text"
+                placeholder="ex. studying during a thunderstorm"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+            />
+            {spotifyUser ? (
+                <>
+                    <p>Welcome, {spotifyUser.display_name}</p>
+                    {!!playlist.length && (
                         <button
                             className="secondary-button"
-                            onClick={handleConnectToSpotify}
+                            onClick={handleSaveToSpotify}
                         >
-                            Connect to Spotify <Spotify />
+                            Save to Spotify <Spotify />
                         </button>
-                    </>
-                )}
-                <button
-                    className="primary-button"
-                    type="button"
-                    onClick={getPlaylist}
-                >
-                    Generate Playlist
-                </button>
-                {isLoading && <LoadingSpinnerModal />}
-                {!!playlist.length && (
-                    <div className="playlist">
-                        <p className="built-from">
-                            Built from: "{lastFetchedInput}"
-                        </p>
-                        {playlist.map((song) => (
-                            <div key={song.title} className="song">
-                                <img
-                                    className="thumbnail"
-                                    src={
-                                        song.thumbnail
-                                            ? song.thumbnail
-                                            : '/assets/spotifyblank.png'
-                                    }
-                                    alt={`${song.title} Album Cover`}
-                                    width={64}
-                                    height={64}
-                                />
-                                <div>
-                                    <p className="title">Title: {song.title}</p>
-                                    <p className="artist">
-                                        Artist: {song.artist}
-                                    </p>
-                                </div>
+                    )}
+                </>
+            ) : (
+                <>
+                    <p>Connect your Spotify account to save playlists</p>
+                    <button
+                        className="secondary-button"
+                        onClick={handleConnectToSpotify}
+                    >
+                        Connect to Spotify <Spotify />
+                    </button>
+                </>
+            )}
+            <button
+                className="primary-button"
+                type="button"
+                onClick={getPlaylist}
+            >
+                Generate Playlist
+            </button>
+            {isLoading && <LoadingSpinnerModal />}
+            {!!playlist.length && (
+                <div className="playlist">
+                    <p className="built-from">
+                        Built from: "{lastFetchedInput}"
+                    </p>
+                    {playlist.map((song) => (
+                        <div key={song.title} className="song">
+                            <img
+                                className="thumbnail"
+                                src={
+                                    song.thumbnail
+                                        ? song.thumbnail
+                                        : '/assets/spotifyblank.png'
+                                }
+                                alt={`${song.title} Album Cover`}
+                                width={64}
+                                height={64}
+                            />
+                            <div>
+                                <p className="title">Title: {song.title}</p>
+                                <p className="artist">Artist: {song.artist}</p>
                             </div>
-                        ))}
-                    </div>
-                )}
-            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }

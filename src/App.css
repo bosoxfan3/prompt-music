@@ -1,15 +1,9 @@
 .app {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
+    text-align: center;
     background-color: #f9fafb;
     color: #111827;
-    margin: 16px;
-}
-
-.container {
-    text-align: center;
+    padding: 48px 16px 16px 16px;
+    flex-grow: 1;
 }
 
 .title-link {
