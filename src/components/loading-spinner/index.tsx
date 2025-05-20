@@ -1,19 +1,19 @@
-import View from './style';
+import './style.css';
 
 const LoadingSpinner = () => {
     return (
-        <View>
-            <div className="loading-spinner__item">
-                <div className="loading-spinner__spinner">
-                    <div className="loading-spinner__circle loading-spinner__circle-1">
-                        <div className="loading-spinner__circle-inner" />
+        <div className="loading-spinner">
+            <div className="item">
+                <div className="spinner">
+                    <div className="circle">
+                        <div className="circle-inner" />
                     </div>
-                    <div className="loading-spinner__circle loading-spinner__circle-2">
-                        <div className="loading-spinner__circle-inner" />
+                    <div className="circle circle-2">
+                        <div className="circle-inner" />
                     </div>
                 </div>
             </div>
-        </View>
+        </div>
     );
 };
 

@@ -3,10 +3,11 @@ import './App.css';
 
 import LoadingSpinnerModal from './components/loading-spinner-modal';
 import Spotify from './components/spotifySVG';
+import Playlist from './components/playlist';
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
-function App() {
+const App = () => {
     const [inputValue, setInputValue] = useState<string>('');
     const [lastFetchedInput, setLastFetchedInput] = useState<string>('');
     const [playlist, setPlaylist] = useState<
@@ -103,6 +104,7 @@ function App() {
         <div className="app">
             <h1>
                 Talk about...
+                {/* this is just a little easter egg. "Prompt Music" reminded me of this song */}
                 <a
                     className="title-link"
                     href="https://www.youtube.com/watch?v=gPoiv0sZ4s4"
@@ -155,33 +157,10 @@ function App() {
             </button>
             {isLoading && <LoadingSpinnerModal />}
             {!!playlist.length && (
-                <div className="playlist">
-                    <p className="built-from">
-                        Built from: "{lastFetchedInput}"
-                    </p>
-                    {playlist.map((song) => (
-                        <div key={song.title} className="song">
-                            <img
-                                className="thumbnail"
-                                src={
-                                    song.thumbnail
-                                        ? song.thumbnail
-                                        : '/assets/spotifyblank.png'
-                                }
-                                alt={`${song.title} Album Cover`}
-                                width={64}
-                                height={64}
-                            />
-                            <div>
-                                <p className="title">Title: {song.title}</p>
-                                <p className="artist">Artist: {song.artist}</p>
-                            </div>
-                        </div>
-                    ))}
-                </div>
+                <Playlist title={lastFetchedInput} playlist={playlist} />
             )}
         </div>
     );
-}
+};
 
 export default App;

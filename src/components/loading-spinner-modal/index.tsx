@@ -1,19 +1,17 @@
-import View from './style';
-
-import Modal from '../modal';
+import './style.css';
 import LoadingSpinner from '../loading-spinner';
 
-const LoadingSpinnerModal = () => {
-    return (
-        <Modal>
-            <View>
-                <h4 className="loading-spinner-modal__text">
-                    Generating Playlist...
-                </h4>
-                <LoadingSpinner />
-            </View>
-        </Modal>
-    );
-};
+const LoadingSpinnerModal = () => (
+    <div className="loading-spinner-modal">
+        <div className="container">
+            <div className="outer-wrapper">
+                <div className="content">
+                    <h4 className="text">Generating Playlist...</h4>
+                    <LoadingSpinner />
+                </div>
+            </div>
+        </div>
+    </div>
+);
 
 export default LoadingSpinnerModal;
