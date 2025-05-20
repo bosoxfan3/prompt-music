@@ -24,29 +24,6 @@ function App() {
     } | null>(null);
 
     useEffect(() => {
-        setPlaylist([
-            {
-                title: 'Hot in Here',
-                artist: 'Nelly',
-                uri: null,
-                thumbnail:
-                    'https://i.scdn.co/image/ab67616d00001e02ff9ca10b55ce82ae553c8228',
-            },
-            {
-                title: 'One Thousand Miles',
-                artist: 'Michelle Branch',
-                uri: null,
-                thumbnail:
-                    'https://i.scdn.co/image/ab67616d00001e02ff9ca10b55ce82ae553c8228',
-            },
-            {
-                title: 'Younger',
-                artist: 'Seinabo Sey',
-                uri: null,
-                thumbnail:
-                    'https://i.scdn.co/image/ab67616d00001e02ff9ca10b55ce82ae553c8228',
-            },
-        ]);
         const fetchUser = async () => {
             try {
                 const res = await fetch(`${API_BASE_URL}/user`, {
@@ -179,27 +156,32 @@ function App() {
                 </button>
                 {isLoading && <LoadingSpinnerModal />}
                 {!!playlist.length && (
-                    <>
-                        <p>Built off of: "{lastFetchedInput}"</p>
+                    <div className="playlist">
+                        <p className="built-from">
+                            Built from: "{lastFetchedInput}"
+                        </p>
                         {playlist.map((song) => (
                             <div key={song.title} className="song">
-                                {song.thumbnail ? (
-                                    <img
-                                        src={song.thumbnail}
-                                        alt={`${song.title} Album Cover`}
-                                        width={64}
-                                        height={64}
-                                    />
-                                ) : (
-                                    <div className="no-album" />
-                                )}
+                                <img
+                                    className="thumbnail"
+                                    src={
+                                        song.thumbnail
+                                            ? song.thumbnail
+                                            : '/assets/spotifyblank.png'
+                                    }
+                                    alt={`${song.title} Album Cover`}
+                                    width={64}
+                                    height={64}
+                                />
                                 <div>
-                                    <p>Title: {song.title}</p>
-                                    <p>Artist: {song.artist}</p>
+                                    <p className="title">Title: {song.title}</p>
+                                    <p className="artist">
+                                        Artist: {song.artist}
+                                    </p>
                                 </div>
                             </div>
                         ))}
-                    </>
+                    </div>
                 )}
             </div>
         </div>

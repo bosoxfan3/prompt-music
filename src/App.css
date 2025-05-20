@@ -5,6 +5,7 @@
     height: 100vh;
     background-color: #f9fafb;
     color: #111827;
+    margin: 16px;
 }
 
 .container {
@@ -56,9 +57,44 @@ input {
     top: 2px;
 }
 
+.playlist {
+    display: grid;
+    justify-content: center;
+}
+
+.built-from {
+    font-weight: bold;
+}
+
 .song {
     display: flex;
     gap: 12px;
     align-items: center;
+    text-align: left;
     margin-bottom: 16px;
+    background-color: #f3f4f6;
+    padding: 8px;
+    border-radius: 8px;
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
+}
+
+.song p {
+    margin: 4px;
+}
+
+.thumbnail {
+    border-radius: 6px;
+}
+
+.no-album {
+    width: 64px;
+    height: 64px;
+}
+
+.title {
+    font-weight: 600;
+}
+
+.artist {
+    color: #6a7282;
 }
