@@ -174,7 +174,7 @@ app.post('/playlist', async (req, res) => {
             );
             const data = await spotifyRes.json();
             const track = data?.tracks?.items?.[0];
-            const images = track.album.images;
+            const images = track?.album?.images || [];
             const thumbnailUrl = images.length
                 ? images[images.length - 1].url
                 : null;
