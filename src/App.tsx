@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import './App.css';
 
 import LoadingSpinnerModal from './components/loading-spinner-modal';
-import Spotify from './components/spotify';
+import Spotify from './components/spotifySVG';
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
@@ -10,20 +10,42 @@ function App() {
     const [inputValue, setInputValue] = useState<string>('');
     const [lastFetchedInput, setLastFetchedInput] = useState<string>('');
     const [playlist, setPlaylist] = useState<
-        { title: string; artist: string; uri: string | null }[]
+        {
+            title: string;
+            artist: string;
+            uri: string | null;
+            thumbnail: string | null;
+        }[]
     >([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
-    const [spotifyUser, setSpotifyUser] = useState<any>(null);
+    const [spotifyUser, setSpotifyUser] = useState<{
+        id: number;
+        display_name: string;
+    } | null>(null);
 
     useEffect(() => {
+        setPlaylist([
+            {
+                title: 'Hot in Here',
+                artist: 'Nelly',
+                uri: null,
+                thumbnail:
+                    'https://i.scdn.co/image/ab67616d00001e02ff9ca10b55ce82ae553c8228',
+            },
+            {
+                title: 'One Thousand Miles',
+                artist: 'Michelle Branch',
+                uri: null,
+                thumbnail:
+                    'https://i.scdn.co/image/ab67616d00001e02ff9ca10b55ce82ae553c8228',
+            },
+        ]);
         const fetchUser = async () => {
             try {
                 const res = await fetch(`${API_BASE_URL}/user`, {
                     credentials: 'include',
                 });
-                if (!res.ok) return;
-
-                const data = await res.json();
+                const data = res.ok ? await res.json() : { user: null };
                 setSpotifyUser(data.user);
             } catch (err) {
                 console.error('Failed to fetch user', err);
@@ -63,6 +85,8 @@ function App() {
     };
 
     const handleSaveToSpotify = async () => {
+        if (!spotifyUser?.id) return;
+
         try {
             setIsLoading(true);
             const response = await fetch(`${API_BASE_URL}/create-playlist`, {

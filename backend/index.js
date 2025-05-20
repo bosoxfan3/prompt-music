@@ -39,10 +39,6 @@ async function getValidAccessToken(req, res) {
     let accessToken = req.cookies.access_token;
     const refreshToken = req.cookies.refresh_token;
 
-    if (!accessToken && !refreshToken) {
-        return null;
-    }
-
     if (accessToken) {
         try {
             const testRes = await fetch('https://api.spotify.com/v1/me', {
@@ -51,8 +47,6 @@ async function getValidAccessToken(req, res) {
 
             if (testRes.status !== 401) {
                 return accessToken; // Token is still valid
-            } else {
-                console.log('Access token expired, attempting refresh');
             }
         } catch (err) {
             console.error('Error testing access token:', err);
@@ -101,7 +95,6 @@ async function getValidAccessToken(req, res) {
         }
     }
 
-    console.log('No valid token path available.');
     return null;
 }
 
@@ -112,7 +105,7 @@ app.get('/', (req, res) => {
 app.get('/user', async (req, res) => {
     const accessToken = await getValidAccessToken(req, res);
     if (!accessToken) {
-        return res.status(401).json({ error: 'No access token' });
+        res.json({ user: null });
     }
 
     try {
@@ -181,12 +174,17 @@ app.post('/playlist', async (req, res) => {
             );
             const data = await spotifyRes.json();
             const track = data?.tracks?.items?.[0];
+            const images = track.album.images;
+            const thumbnailUrl = images.length
+                ? images[images.length - 1].url
+                : null;
 
             if (track) {
                 results.push({
                     title: song.title,
                     artist: song.artist,
                     uri: track?.uri || null,
+                    thumbnail: thumbnailUrl,
                 });
             }
         }
@@ -274,7 +272,6 @@ app.get('/callback', async (req, res) => {
             sameSite: 'none',
         });
 
-        console.log('Redirecting to:', FRONTEND_BASE_URL);
         res.redirect(FRONTEND_BASE_URL);
     } catch (err) {
         console.error('Error during token exchange:', err);
@@ -309,12 +306,17 @@ app.post('/create-playlist', async (req, res) => {
             );
             const data = await spotifyRes.json();
             const track = data?.tracks?.items?.[0];
+            const images = track.album.images;
+            const thumbnailUrl = images.length
+                ? images[images.length - 1].url
+                : null;
 
             if (track) {
                 playlistToUse.push({
                     title: song.title,
                     artist: song.artist,
                     uri: track?.uri || null,
+                    thumbnail: thumbnailUrl,
                 });
             }
         }
