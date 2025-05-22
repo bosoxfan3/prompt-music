@@ -1,4 +1,4 @@
-# Prompt-to-Playlist 🎵
+# Prompt Music 🎵
 
 Generate Spotify playlists based on a custom mood or scenario using AI and the Spotify API.
 
@@ -13,9 +13,9 @@ Users enter a prompt (like "studying during a thunderstorm"), and the app uses O
 ## 🔧 Built With
 
 -   React
+-   TypeScript
 -   OpenAI API
 -   Spotify Web API
--   Emotion.js
 
 ## 📦 Getting Started
 
